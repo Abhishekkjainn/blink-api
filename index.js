@@ -14,7 +14,44 @@ app.get('/', async (req, res) => {
 
 const crypto = require('crypto');
 
-app.post('/add', async (req, res) => {
+app.get('/shortcode=:shortcode', async (req, res) => {
+  try {
+    const { shortcode } = req.params;
+
+    if (!shortcode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shortcode is required.',
+      });
+    }
+
+    const fetchFromRef = db.collection('fetchfrom').doc(shortcode);
+    const fetchFromDoc = await fetchFromRef.get();
+
+    if (!fetchFromDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shortcode not found.',
+      });
+    }
+
+    const { url } = fetchFromDoc.data();
+
+    return res.status(200).json({
+      success: true,
+      message: 'URL retrieved successfully.',
+      url,
+    });
+  } catch (error) {
+    console.error('Error fetching URL:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error. Please try again later.',
+    });
+  }
+});
+
+app.post('/add/addurl', async (req, res) => {
   try {
     const { url, email } = req.body;
 
@@ -25,11 +62,9 @@ app.post('/add', async (req, res) => {
       });
     }
 
-    const shortCode = crypto.randomBytes(4).toString('hex'); // Generates a 6-character alphanumeric code
+    const shortCode = crypto.randomBytes(4).toString('hex');
     const newEntry = { shortCode, url };
     console.log('Generated Short Code:', shortCode);
-
-    // Reference for the user's document in "url" collection
     const userDocRef = db.collection('url').doc(email);
     const userDoc = await userDocRef.get();
 
@@ -42,8 +77,6 @@ app.post('/add', async (req, res) => {
     } else {
       await userDocRef.set({ urls: [newEntry], createdAt: new Date() });
     }
-
-    // Reference for the short code document in "fetchfrom" collection
     const fetchFromRef = db.collection('fetchfrom').doc(shortCode);
     await fetchFromRef.set({ url, email, createdAt: new Date() });
 
