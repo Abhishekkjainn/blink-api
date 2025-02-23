@@ -25,7 +25,7 @@ app.post('/add', async (req, res) => {
       });
     }
 
-    const shortCode = crypto.randomBytes(3).toString('hex'); // Generates a 6-character alphanumeric code
+    const shortCode = crypto.randomBytes(4).toString('hex'); // Generates a 6-character alphanumeric code
     const newEntry = { shortCode, url };
     console.log('Generated Short Code:', shortCode);
 
