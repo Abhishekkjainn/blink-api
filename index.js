@@ -19,17 +19,19 @@ app.post('/add', async (req, res) => {
     const { url, email } = req.body;
 
     if (!url || !email) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Both URL and Email are required.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Both URL and Email are required.',
+      });
     }
-
-    const userDocRef = db.collection('url').doc(email);
-    const userDoc = await userDocRef.get();
 
     const shortCode = crypto.randomBytes(3).toString('hex'); // Generates a 6-character alphanumeric code
     const newEntry = { shortCode, url };
-    console.log(shortCode);
+    console.log('Generated Short Code:', shortCode);
+
+    // Reference for the user's document in "url" collection
+    const userDocRef = db.collection('url').doc(email);
+    const userDoc = await userDocRef.get();
 
     if (userDoc.exists) {
       const existingData = userDoc.data();
@@ -37,18 +39,19 @@ app.post('/add', async (req, res) => {
       updatedUrls.push(newEntry);
 
       await userDocRef.update({ urls: updatedUrls, updatedAt: new Date() });
-      return res.status(200).json({
-        success: true,
-        message: 'URL added to the existing list.',
-        urls: updatedUrls,
-      });
+    } else {
+      await userDocRef.set({ urls: [newEntry], createdAt: new Date() });
     }
 
-    await userDocRef.set({ urls: [newEntry], createdAt: new Date() });
+    // Reference for the short code document in "fetchfrom" collection
+    const fetchFromRef = db.collection('fetchfrom').doc(shortCode);
+    await fetchFromRef.set({ url, email, createdAt: new Date() });
+
     return res.status(201).json({
       success: true,
-      message: 'New entry created with the provided URL.',
-      urls: [newEntry],
+      message: 'URL added successfully to both collections.',
+      shortCode,
+      fetchFrom: { url, email },
     });
   } catch (error) {
     console.error('Error processing request:', error);
