@@ -14,7 +14,7 @@ app.get('/', async (req, res) => {
 
 const crypto = require('crypto');
 
-app.get('/shortcode=:shortcode', async (req, res) => {
+app.get('/c=:shortcode', async (req, res) => {
   try {
     const { shortcode } = req.params;
 
@@ -51,7 +51,7 @@ app.get('/shortcode=:shortcode', async (req, res) => {
   }
 });
 
-app.get('/alllinks=:email', async (req, res) => {
+app.get('/a=:email', async (req, res) => {
   try {
     const { email } = req.params;
 
