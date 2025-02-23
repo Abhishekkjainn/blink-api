@@ -108,6 +108,7 @@ app.get('/c=:shortcode', async (req, res) => {
       });
     }
 
+    // Fetch the URL from fetchfrom collection
     const fetchFromRef = db.collection('fetchfrom').doc(shortcode);
     const fetchFromDoc = await fetchFromRef.get();
 
@@ -118,10 +119,27 @@ app.get('/c=:shortcode', async (req, res) => {
       });
     }
 
-    const { url, clickCount = 0 } = fetchFromDoc.data();
+    const { url, email, clickCount = 0 } = fetchFromDoc.data();
 
-    // Increment clickCount
+    // Increment clickCount in fetchfrom collection
     await fetchFromRef.update({ clickCount: clickCount + 1 });
+
+    // Fetch the user's document from url collection
+    const userDocRef = db.collection('url').doc(email);
+    const userDoc = await userDocRef.get();
+
+    if (userDoc.exists) {
+      let userData = userDoc.data();
+      let updatedUrls = userData.urls.map((entry) => {
+        if (entry.shortCode === shortcode) {
+          return { ...entry, clickCount: (entry.clickCount || 0) + 1 };
+        }
+        return entry;
+      });
+
+      // Update the document with new click counts
+      await userDocRef.update({ urls: updatedUrls });
+    }
 
     return res.status(200).json({
       success: true,
