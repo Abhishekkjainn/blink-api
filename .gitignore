@@ -1,0 +1,11 @@
+# Node.js
+node_modules/
+npm-debug.log
+.env
+firebasedata.json
+
+# Mac system files
+.DS_Store
+
+# Logs
+*.log
