@@ -29,6 +29,7 @@ app.post('/add', async (req, res) => {
 
     const shortCode = crypto.randomBytes(3).toString('hex'); // Generates a 6-character alphanumeric code
     const newEntry = { shortCode, url };
+    console.log(shortCode);
 
     if (userDoc.exists) {
       const existingData = userDoc.data();
@@ -36,31 +37,25 @@ app.post('/add', async (req, res) => {
       updatedUrls.push(newEntry);
 
       await userDocRef.update({ urls: updatedUrls, updatedAt: new Date() });
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: 'URL added to the existing list.',
-          urls: updatedUrls,
-        });
+      return res.status(200).json({
+        success: true,
+        message: 'URL added to the existing list.',
+        urls: updatedUrls,
+      });
     }
 
     await userDocRef.set({ urls: [newEntry], createdAt: new Date() });
-    return res
-      .status(201)
-      .json({
-        success: true,
-        message: 'New entry created with the provided URL.',
-        urls: [newEntry],
-      });
+    return res.status(201).json({
+      success: true,
+      message: 'New entry created with the provided URL.',
+      urls: [newEntry],
+    });
   } catch (error) {
     console.error('Error processing request:', error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: 'Internal Server Error. Please try again later.',
-      });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error. Please try again later.',
+    });
   }
 });
 
