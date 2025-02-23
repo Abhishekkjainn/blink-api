@@ -118,7 +118,10 @@ app.get('/c=:shortcode', async (req, res) => {
       });
     }
 
-    const { url } = fetchFromDoc.data();
+    const { url, clickCount = 0 } = fetchFromDoc.data();
+
+    // Increment clickCount
+    await fetchFromRef.update({ clickCount: clickCount + 1 });
 
     return res.status(200).json({
       success: true,
@@ -155,7 +158,7 @@ app.get('/a=:email', async (req, res) => {
       });
     }
 
-    const { urls } = userDoc.data();
+    let { urls } = userDoc.data();
 
     if (!urls || urls.length === 0) {
       return res.status(200).json({
@@ -165,10 +168,27 @@ app.get('/a=:email', async (req, res) => {
       });
     }
 
+    // Fetch click count for each URL from fetchfrom collection
+    const urlsWithClickCount = await Promise.all(
+      urls.map(async (entry) => {
+        const fetchFromRef = db.collection('fetchfrom').doc(entry.shortCode);
+        const fetchFromDoc = await fetchFromRef.get();
+
+        const clickCount = fetchFromDoc.exists
+          ? fetchFromDoc.data().clickCount || 0
+          : 0;
+
+        return {
+          ...entry,
+          clickCount,
+        };
+      })
+    );
+
     return res.status(200).json({
       success: true,
       message: 'URLs retrieved successfully.',
-      urls,
+      urls: urlsWithClickCount,
     });
   } catch (error) {
     console.error('Error fetching URLs:', error);
@@ -191,8 +211,9 @@ app.post('/add/addurl', async (req, res) => {
     }
 
     const shortCode = crypto.randomBytes(4).toString('hex');
-    const newEntry = { shortCode, url };
+    const newEntry = { shortCode, url, clickCount: 0 }; // Initialize clickCount
     console.log('Generated Short Code:', shortCode);
+
     const userDocRef = db.collection('url').doc(email);
     const userDoc = await userDocRef.get();
 
@@ -205,14 +226,21 @@ app.post('/add/addurl', async (req, res) => {
     } else {
       await userDocRef.set({ urls: [newEntry], createdAt: new Date() });
     }
+
+    // Store URL in fetchFrom collection with clickCount
     const fetchFromRef = db.collection('fetchfrom').doc(shortCode);
-    await fetchFromRef.set({ url, email, createdAt: new Date() });
+    await fetchFromRef.set({
+      url,
+      email,
+      clickCount: 0,
+      createdAt: new Date(),
+    });
 
     return res.status(201).json({
       success: true,
       message: 'URL added successfully to both collections.',
       shortCode,
-      fetchFrom: { url, email },
+      fetchFrom: { url, email, clickCount: 0 },
     });
   } catch (error) {
     console.error('Error processing request:', error);
