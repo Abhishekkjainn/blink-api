@@ -51,6 +51,51 @@ app.get('/shortcode=:shortcode', async (req, res) => {
   }
 });
 
+app.get('/alllinks=:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required.',
+      });
+    }
+
+    const userDocRef = db.collection('url').doc(email);
+    const userDoc = await userDocRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'No data found for the provided email.',
+      });
+    }
+
+    const { urls } = userDoc.data();
+
+    if (!urls || urls.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No URLs found for this email.',
+        urls: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'URLs retrieved successfully.',
+      urls,
+    });
+  } catch (error) {
+    console.error('Error fetching URLs:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error. Please try again later.',
+    });
+  }
+});
+
 app.post('/add/addurl', async (req, res) => {
   try {
     const { url, email } = req.body;
